@@ -2,12 +2,12 @@ import { Routes } from '@angular/router';
 import { HomeComponent } from './pages/home/home.component';
 import { LabsComponent } from './pages/labs/labs.component';
 import { RegisterComponent } from './pages/register/register.component';
+import { LandingComponent } from './pages/landing/landing.component';
 
 export const routes: Routes = [
     {
         path: '',
-        redirectTo: 'home',
-        pathMatch: 'full'
+        component: LandingComponent
     },
     {
         path: 'home',

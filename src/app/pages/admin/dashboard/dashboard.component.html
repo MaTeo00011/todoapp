@@ -37,8 +37,9 @@
   <div class="header-actions">
     <div class="user-info">
       <div class="user-avatar">👨‍💼</div>
-      <span>Admin</span>
+      <span>{{ adminName || 'Admin local' }}</span>
     </div>
+    <button class="logout-btn" (click)="logoutAdmin()">Cerrar sesión Admin</button>
   </div>
 </header>
 
@@ -48,25 +49,25 @@
     <div class="stat-card">
       <div class="stat-icon">🛍️</div>
       <div class="stat-label">Total Productos</div>
-      <div class="stat-value">6</div>
+      <div class="stat-value">{{ totalProducts }}</div>
     </div>
     
     <div class="stat-card">
       <div class="stat-icon">💰</div>
       <div class="stat-label">Ventas del Día</div>
-      <div class="stat-value">$450</div>
+      <div class="stat-value">{{ salesToday | currency:'USD':'symbol':'1.0-2' }}</div>
     </div>
     
     <div class="stat-card">
       <div class="stat-icon">👥</div>
       <div class="stat-label">Usuarios</div>
-      <div class="stat-value">127</div>
+      <div class="stat-value">{{ totalUsers }}</div>
     </div>
     
     <div class="stat-card">
       <div class="stat-icon">📦</div>
       <div class="stat-label">Pedidos Hoy</div>
-      <div class="stat-value">12</div>
+      <div class="stat-value">{{ ordersToday }}</div>
     </div>
   </div>
 

@@ -96,6 +96,22 @@
   gap: 1rem;
 }
 
+.logout-btn {
+  background: linear-gradient(135deg, #ff3b30, #ff6b30);
+  border: none;
+  color: white;
+  border-radius: 30px;
+  padding: 0.45rem 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.logout-btn:hover {
+  transform: translateY(-1px);
+  opacity: 0.9;
+}
+
 .user-info {
   display: flex;
   align-items: center;

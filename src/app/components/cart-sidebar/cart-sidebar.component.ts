@@ -76,10 +76,9 @@ export class CartSidebarComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Método para proceder al checkout (lo implementaremos después)
+  // Método para proceder al checkout (graba venta real)
   checkout() {
-    alert('🎉 ¡Función de checkout próximamente!');
-    // Aquí conectarás con tu sistema de pagos
+    this.cartService.checkout();
   }
 
   // Método para formatear precios correctamente

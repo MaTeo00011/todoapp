@@ -1,6 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { GymUserService, GymUser } from '../../services/gym-user.service';
 
 @Component({
@@ -33,12 +34,13 @@ export class RegisterComponent {
 
   constructor(
     private fb: FormBuilder,
-    private gymUserService: GymUserService
+    private gymUserService: GymUserService,
+    private router: Router
   ) {
     this.registerForm = this.fb.group({
       firstName: ['', [Validators.required, Validators.minLength(2)]],
       lastName: ['', [Validators.required, Validators.minLength(2)]],
-      age: ['', [Validators.required, Validators.min(10), Validators.max(100)]],
+      age: ['', [Validators.required, Validators.min(10), Validators.max(150)]],
       phone: ['', [Validators.required, Validators.pattern(/^\d{10}$/)]],
       trainingType: ['general', Validators.required],
       paymentType: ['mes', Validators.required],
@@ -80,13 +82,13 @@ export class RegisterComponent {
 
       this.gymUserService.addUser(userData);
       alert('Usuario registrado exitosamente!');
-      this.registerForm.reset({
-        trainingType: 'general',
-        paymentType: 'mes',
-        paymentStart: new Date().toISOString().split('T')[0]
-      });
+      this.goBack();
     } else {
       alert('Por favor, completa todos los campos correctamente.');
     }
+  }
+
+  goBack() {
+    this.router.navigate(['/']);
   }
 }

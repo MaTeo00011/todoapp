@@ -1,6 +1,9 @@
 <div class="register-container">
   <div class="register-card">
-    <h1 class="register-title">Registro de Usuario Gym</h1>
+    <div class="register-header">
+      <h1 class="register-title">Registro de Usuario Gym</h1>
+      <button class="close-register-btn" (click)="goBack()" title="Cerrar registro">✕</button>
+    </div>
     <p class="register-subtitle">Únete a nuestro gimnasio y comienza tu transformación</p>
 
     <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="register-form">

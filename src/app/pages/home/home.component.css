@@ -219,6 +219,27 @@
   flex-direction: column;
 }
 
+.user-mode-buttons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.mode-btn {
+  font-size: 0.8rem;
+  color: white;
+  border: 1px solid rgba(255,255,255,0.5);
+  padding: 0.3rem 0.75rem;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+
+.mode-btn:hover {
+  background: rgba(255,255,255,0.1);
+}
+
+
 /* Efecto de hover en las tarjetas */
 .product-card::before {
   content: '';
@@ -602,4 +623,64 @@ transition: transform 0.3s ease;
   .indicator.active {
     width: 24px;
   }
+}
+
+/* ========================================
+   ESTILOS PARA USUARIO LOGUEADO
+   ======================================== */
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.user-greeting {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(16, 185, 129, 0.1);
+  padding: 0.5rem 1rem;
+  border-radius: 25px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.welcome-text {
+  color: #10B981;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.admin-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: rgba(255, 107, 53, 0.1);
+  padding: 0.5rem 1rem;
+  border-radius: 25px;
+  border: 1px solid rgba(255, 107, 53, 0.3);
+}
+
+.admin-text {
+  color: #FF6B35;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.logout-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 0.4rem 0.8rem;
+  border-radius: 15px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.logout-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
+  transform: translateY(-1px);
 }

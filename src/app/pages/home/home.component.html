@@ -2,6 +2,18 @@
 <header class="top-header">
   <div class="header-content">
     <h3 class="logo">💪 FitPro</h3>
+    <div class="user-info">
+      <!-- Mostrar nombre del usuario si está logueado -->
+      <div *ngIf="currentUser && currentUser.role === 'user'" class="user-greeting">
+        <span class="welcome-text">¡Hola, {{ currentUser.username }}!</span>
+        <button (click)="logoutUser()" class="logout-btn">Cerrar sesión</button>
+      </div>
+      <!-- Mostrar opciones de admin si está logueado como admin -->
+      <div *ngIf="isAdmin" class="admin-info">
+        <span class="admin-text">Modo Administrador</span>
+        <button (click)="logoutAdmin()" class="logout-btn">Cerrar sesión</button>
+      </div>
+    </div>
     <button class="cart-button" (click)="openCart()">
       🛒
       <span class="cart-badge" *ngIf="(cartService.cartItems$ | async)?.length ?? 0 as itemCount">
@@ -53,7 +65,7 @@
   <div class="hero-content">
     <h1 class="floating">{{ slides[currentSlide].title }}</h1>
     <p>{{ slides[currentSlide].subtitle }}</p>
-    <a routerLink="/register" class="cta-button">Únete al Gym</a>
+    <!--<a routerLink="/register" class="cta-button">Únete al Gym</a>-->
   </div>
 </section>
 

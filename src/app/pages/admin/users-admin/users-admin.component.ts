@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { GymUserService, GymUser } from '../../../services/gym-user.service';
 
 @Component({
@@ -37,7 +38,7 @@ export class UsersAdminComponent implements OnInit, OnDestroy {
     paymentStart: new Date()
   };
 
-  constructor(private gymUserService: GymUserService) {}
+  constructor(private gymUserService: GymUserService, private router: Router) {}
 
   ngOnInit() {
     // Cargar usuarios
@@ -208,5 +209,10 @@ export class UsersAdminComponent implements OnInit, OnDestroy {
     this.statusFilter = '';
     this.trainingFilter = '';
     this.applyFilters();
+  }
+
+  // Volver al dashboard
+  goBack() {
+    this.router.navigate(['/admin/dashboard']);
   }
 }

@@ -9,6 +9,26 @@
 .admin-header {
   text-align: center;
   margin-bottom: 3rem;
+  position: relative;
+}
+
+.back-btn {
+  position: absolute;
+  left: 0;
+  top: 0;
+  background: linear-gradient(135deg, #0066FF, #0052CC);
+  border: none;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.back-btn:hover {
+  transform: translateX(-5px);
+  box-shadow: 0 5px 15px rgba(0, 102, 255, 0.3);
 }
 
 .admin-title {

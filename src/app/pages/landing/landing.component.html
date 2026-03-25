@@ -1,0 +1,71 @@
+<div class="landing-container">
+  <div class="landing-hero">
+    <!-- Carrusel de fondo (igual que home) -->
+    <div class="carousel">
+      <div class="carousel-slides">
+        <div
+          class="carousel-slide"
+          *ngFor="let slide of slides; let i = index"
+          [class.active]="i === currentSlide"
+          [style.background-image]="'url(' + slide.image + ')'">
+          <div class="carousel-overlay"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contenido principal -->
+    <div class="landing-content">
+      <h1 class="landing-title">💪 FitPro Gym</h1>
+      <p class="landing-subtitle">Tu transformación comienza aquí</p>
+
+      <div class="action-buttons">
+        <button class="action-btn user-btn" (click)="enterAsUser()">
+          👤 Entrar como Usuario
+        </button>
+        <button class="action-btn admin-btn" (click)="enterAsAdmin()">
+          👨‍💼 Entrar como Administrador
+        </button>
+        <button class="action-btn register-btn" (click)="goToRegister()">
+          🏋️‍♂️ Únete al Gym
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de login usuario -->
+  <div class="modal-overlay" *ngIf="showUserLogin" (click)="closeUserLogin()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>👤 Entrar como Usuario</h2>
+        <button class="close-btn" (click)="closeUserLogin()">×</button>
+      </div>
+
+      <form class="login-form" (ngSubmit)="loginAsUser()">
+        <div class="form-group">
+          <label for="userName">Nombre Completo:</label>
+          <input
+            type="text"
+            id="userName"
+            [(ngModel)]="userName"
+            name="userName"
+            placeholder="Ingresa tu nombre completo"
+            required
+            class="form-input">
+        </div>
+
+        <div class="form-actions">
+          <button type="button" class="cancel-btn" (click)="closeUserLogin()">Cancelar</button>
+          <button type="submit" class="login-btn">Entrar</button>
+        </div>
+      </form>
+
+      <div class="register-prompt" *ngIf="showRegisterPrompt">
+        <p>❌ Usuario no encontrado. ¿Quieres registrarte?</p>
+        <div class="register-actions">
+          <button type="button" class="cancel-btn" (click)="cancelRegisterPrompt()">Cancelar</button>
+          <button class="register-link-btn" (click)="goToRegisterFromModal()">🏋️‍♂️ Únete al Gym</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

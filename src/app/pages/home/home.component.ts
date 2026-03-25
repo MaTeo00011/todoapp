@@ -1,8 +1,9 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { CartService } from '../../services/cart.service';
 import { ProductService, Product } from '../../services/product.service';
+import { AuthService, AppUser } from '../../services/auth.service';
 
 // Interface para las slides del carrusel
 interface CarouselSlide {
@@ -21,6 +22,7 @@ interface CarouselSlide {
 export class HomeComponent implements OnInit, OnDestroy {
   
   products: Product[] = [];
+  currentUser: AppUser | null = null;
   
   // CARRUSEL
   slides: CarouselSlide[] = [
@@ -54,17 +56,39 @@ export class HomeComponent implements OnInit, OnDestroy {
   currentSlide = 0;
   autoPlayInterval: any;
   
+  isAdmin = false;
+
   constructor(
     public cartService: CartService,
-    private productService: ProductService
+    private productService: ProductService,
+    private authService: AuthService,
+    private router: Router
   ) {}
+
+  logoutAdmin() {
+    this.authService.logout();
+    this.isAdmin = false;
+    this.router.navigate(['/']);
+  }
+
+  logoutUser() {
+    this.authService.logout();
+    this.currentUser = null;
+    this.router.navigate(['/']);
+  }
 
   ngOnInit() {
     // Cargar productos
     this.productService.products$.subscribe(products => {
       this.products = products;
     });
-    
+
+    // Verificar usuario actual
+    this.authService.currentUser$.subscribe(user => {
+      this.currentUser = user;
+      this.isAdmin = user?.role === 'admin';
+    });
+
     // Iniciar auto-play del carrusel
     this.startAutoPlay();
   }
