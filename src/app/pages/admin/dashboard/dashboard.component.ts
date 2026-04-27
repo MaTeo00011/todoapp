@@ -5,7 +5,9 @@ import { ProductService } from '../../../services/product.service';
 import { CartService } from '../../../services/cart.service';
 import { GymUserService } from '../../../services/gym-user.service';
 import { AuthService } from '../../../services/auth.service';
-import { Chart, ChartConfiguration, ChartData, ChartOptions } from 'chart.js';
+import { Chart, ChartConfiguration, ChartData, ChartOptions, CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler } from 'chart.js';
+
+Chart.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler);
 
 @Component({
   selector: 'app-dashboard',
@@ -230,15 +232,23 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
       // Calcular datos del gráfico de últimos 7 días
       this.calculateChartData(sales);
-      this.updateChart();
+      if (this.salesChart) {
+        this.updateChart();
+      }
     });
   }
 
   ngAfterViewInit() {
     this.createChart();
+    const existingSales = this.cartService.getSales();
+    if (existingSales.length > 0) {
+      this.calculateChartData(existingSales);
+      this.updateChart();
+    }
   }
 
   ngOnDestroy() {
     this.salesChart?.destroy();
   }
 }
+
