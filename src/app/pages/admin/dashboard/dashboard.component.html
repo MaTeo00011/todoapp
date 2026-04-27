@@ -79,4 +79,18 @@
       Desde aquí puedes gestionar productos, usuarios del gimnasio y ventas de suplementos.
     </p>
   </section>
+
+  <section class="section chart-section">
+    <div class="chart-container">
+      <h3 class="chart-title">📈 Evolución de Ventas - Últimos 7 Días</h3>
+      <div class="chart-wrapper">
+        <canvas 
+          baseChart 
+          type="line" 
+          [data]="chartData" 
+          [options]="chartOptions">
+        </canvas>
+      </div>
+    </div>
+  </section>
 </main>
