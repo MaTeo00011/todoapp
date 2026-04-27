@@ -16,6 +16,7 @@ export class ProductosComponent implements OnInit {
   products: Product[] = [];
   showModal = false;
   isEditMode = false;
+  sidebarOpen = false;
   
   // NUEVO: Para manejar la imagen
   selectedImage: string | null = null;
@@ -85,6 +86,14 @@ export class ProductosComponent implements OnInit {
   closeModal() {
     this.showModal = false;
     this.resetForm();
+  }
+
+  toggleSidebar() {
+    this.sidebarOpen = !this.sidebarOpen;
+  }
+
+  closeSidebar() {
+    this.sidebarOpen = false;
   }
 
   // Resetear formulario

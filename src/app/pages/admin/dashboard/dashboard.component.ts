@@ -20,6 +20,7 @@ export class DashboardComponent implements OnInit {
   ordersToday = 0;
 
   adminName = '';
+  sidebarOpen = false;
 
   constructor(
     private productService: ProductService,
@@ -28,6 +29,14 @@ export class DashboardComponent implements OnInit {
     private authService: AuthService,
     private router: Router
   ) {}
+
+  toggleSidebar() {
+    this.sidebarOpen = !this.sidebarOpen;
+  }
+
+  closeSidebar() {
+    this.sidebarOpen = false;
+  }
 
   logoutAdmin() {
     this.authService.logout();

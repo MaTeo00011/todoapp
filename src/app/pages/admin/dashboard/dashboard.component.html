@@ -1,5 +1,5 @@
 <!-- Sidebar -->
-<aside class="sidebar">
+<aside class="sidebar" [class.open]="sidebarOpen">
   <div class="sidebar-logo">
     <h2>💪 FitPro Admin</h2>
   </div>
@@ -30,9 +30,11 @@
     </li>
   </ul>
 </aside>
+<div class="mobile-overlay" *ngIf="sidebarOpen" (click)="closeSidebar()"></div>
 
 <!-- Header -->
 <header class="top-header">
+  <button class="menu-btn" (click)="toggleSidebar()" aria-label="Abrir menú">☰</button>
   <h1 class="header-title">Dashboard</h1>
   <div class="header-actions">
     <div class="user-info">

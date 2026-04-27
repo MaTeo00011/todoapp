@@ -47,6 +47,7 @@
       </button>
     </div>
     
+    <!-- TABLA DESKTOP (visible en pantallas > 768px) -->
     <table class="users-table">
       <thead>
         <tr>
@@ -105,6 +106,68 @@
         </tr>
       </tbody>
     </table>
+
+    <!-- CARDS MOBILE (visible solo en pantallas < 768px) -->
+    <div class="users-cards">
+      <div *ngIf="filteredUsers.length === 0 && users.length > 0" class="empty-message">
+        No se encontraron usuarios que coincidan con los filtros aplicados.
+      </div>
+      <div *ngIf="users.length === 0" class="empty-message">
+        No hay usuarios registrados aún.
+      </div>
+
+      <div *ngFor="let user of filteredUsers" class="user-card" [class]="getStatusClass(user.status)">
+        <div class="card-header">
+          <div class="card-name">{{ user.firstName }} {{ user.lastName }}</div>
+          <span class="card-status-emoji" [class]="getStatusClass(user.status)">
+            {{ getStatusEmoji(user.status) }}
+          </span>
+        </div>
+
+        <div class="card-body">
+          <div class="card-field">
+            <span class="card-label">Edad:</span>
+            <span class="card-value">{{ user.age }} años</span>
+          </div>
+
+          <div class="card-field">
+            <span class="card-label">Teléfono:</span>
+            <span class="card-value">{{ user.phone }}</span>
+          </div>
+
+          <div class="card-field">
+            <span class="card-label">Entrenamiento:</span>
+            <span class="card-value">
+              {{ user.trainingType === 'general' ? 'Entrenador General' : 'Personalizado' }}
+              <span *ngIf="user.trainingType === 'personalized' && user.personalizedDetails">
+                ({{ user.personalizedDetails.type }})
+              </span>
+            </span>
+          </div>
+
+          <div class="card-field">
+            <span class="card-label">Estado de Pago:</span>
+            <span class="card-status" [class]="getStatusClass(user.status)">
+              {{ user.status === 'active' ? '✓ Al día' : user.status === 'expiring' ? '⚠️ Por expirar' : '✕ Expirado' }}
+            </span>
+          </div>
+
+          <div class="card-field">
+            <span class="card-label">Detalles:</span>
+            <span class="card-value">{{ user.paymentType }} - Hasta {{ formatDate(user.paymentEnd) }}</span>
+          </div>
+        </div>
+
+        <div class="card-actions">
+          <button class="btn-card-edit" (click)="openEditModal(user)">
+            ✏️ Editar
+          </button>
+          <button class="btn-card-delete" (click)="deleteUser(user.id)">
+            🗑️ Eliminar
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Leyenda de colores -->
