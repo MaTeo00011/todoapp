@@ -55,7 +55,7 @@ export class DashboardComponent implements OnInit {
         display: true,
         labels: {
           color: '#FFFFFF',
-          font: { size: 12, weight: '600' }
+          font: { size: 12, weight: 600 }
         }
       },
       tooltip: {
@@ -67,7 +67,8 @@ export class DashboardComponent implements OnInit {
         padding: 12,
         callbacks: {
           label: function(context) {
-            return `$${context.parsed.y.toFixed(2)}`
+            const value = context.parsed?.y ?? 0;
+            return `$${value.toFixed(2)}`;
           }
         }
       }
@@ -82,8 +83,7 @@ export class DashboardComponent implements OnInit {
           }
         },
         grid: {
-          color: 'rgba(255, 255, 255, 0.05)',
-          drawBorder: false
+          color: 'rgba(255, 255, 255, 0.05)'
         }
       },
       x: {
@@ -91,8 +91,7 @@ export class DashboardComponent implements OnInit {
           color: '#B0B0B0'
         },
         grid: {
-          display: false,
-          drawBorder: false
+          display: false
         }
       }
     }

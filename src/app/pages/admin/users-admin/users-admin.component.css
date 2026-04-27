@@ -543,8 +543,6 @@
   border-radius: 12px;
   border: 1px solid #2A2A2A;
 }
-  color: #B0B0B0;
-}
 
 .no-users a {
   color: #0066FF;
@@ -733,7 +731,6 @@
 
 .delete-btn:active {
   transform: scale(0.95);
-}
 }
 
 .edit-btn:hover {
