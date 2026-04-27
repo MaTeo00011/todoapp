@@ -1,22 +1,22 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { ProductService } from '../../../services/product.service';
 import { CartService } from '../../../services/cart.service';
 import { GymUserService } from '../../../services/gym-user.service';
 import { AuthService } from '../../../services/auth.service';
-import { BaseChartDirective } from 'ng2-charts';
-import { ChartOptions, ChartData } from 'chart.js';
+import { Chart, ChartConfiguration, ChartData, ChartOptions } from 'chart.js';
 
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterLink, BaseChartDirective],
+  imports: [CommonModule, RouterLink],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css'
 })
-export class DashboardComponent implements OnInit {
-  @ViewChild(BaseChartDirective) chart?: BaseChartDirective;
+export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
+  @ViewChild('salesChart', { static: false }) salesChartRef?: ElementRef<HTMLCanvasElement>;
+  salesChart?: Chart<'line'>;
 
   totalProducts = 0;
   salesToday = 0;
@@ -96,6 +96,34 @@ export class DashboardComponent implements OnInit {
       }
     }
   };
+
+  private createChart() {
+    if (!this.salesChartRef?.nativeElement) {
+      return;
+    }
+
+    const ctx = this.salesChartRef.nativeElement.getContext('2d');
+    if (!ctx) {
+      return;
+    }
+
+    const config: ChartConfiguration<'line'> = {
+      type: 'line',
+      data: this.chartData,
+      options: this.chartOptions
+    };
+
+    this.salesChart = new Chart(ctx, config);
+  }
+
+  private updateChart() {
+    if (!this.salesChart) {
+      return;
+    }
+
+    this.salesChart.data = this.chartData;
+    this.salesChart.update();
+  }
 
   constructor(
     private productService: ProductService,
@@ -202,6 +230,15 @@ export class DashboardComponent implements OnInit {
 
       // Calcular datos del gráfico de últimos 7 días
       this.calculateChartData(sales);
+      this.updateChart();
     });
+  }
+
+  ngAfterViewInit() {
+    this.createChart();
+  }
+
+  ngOnDestroy() {
+    this.salesChart?.destroy();
   }
 }

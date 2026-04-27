@@ -84,12 +84,7 @@
     <div class="chart-container">
       <h3 class="chart-title">📈 Evolución de Ventas - Últimos 7 Días</h3>
       <div class="chart-wrapper">
-        <canvas 
-          baseChart 
-          type="line" 
-          [data]="chartData" 
-          [options]="chartOptions">
-        </canvas>
+        <canvas #salesChart></canvas>
       </div>
     </div>
   </section>
