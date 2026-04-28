@@ -1,5 +1,6 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { CartService, CartItem } from '../../services/cart.service';
 import { Subscription } from 'rxjs';
 
@@ -21,7 +22,7 @@ export class CartSidebarComponent implements OnInit, OnDestroy {
   private subscriptions: Subscription = new Subscription();
 
   // Inyectamos el servicio del carrito
-  constructor(public cartService: CartService) {}
+  constructor(public cartService: CartService, private router: Router) {}
 
   // Se ejecuta cuando el componente se carga
   ngOnInit() {
@@ -76,9 +77,10 @@ export class CartSidebarComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Método para proceder al checkout (graba venta real)
+  // Método para proceder al checkout y navegar a la página de pago
   checkout() {
-    this.cartService.checkout();
+    this.cartService.closeSidebar();
+    this.router.navigate(['/checkout']);
   }
 
   // Método para formatear precios correctamente

@@ -2,12 +2,12 @@ import { AfterViewInit, Component, ElementRef, OnDestroy, OnInit, ViewChild } fr
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { ProductService } from '../../../services/product.service';
-import { CartService } from '../../../services/cart.service';
+import { CartService, Sale } from '../../../services/cart.service';
 import { GymUserService } from '../../../services/gym-user.service';
 import { AuthService } from '../../../services/auth.service';
-import { Chart, ChartConfiguration, ChartData, ChartOptions, CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler } from 'chart.js';
+import { Chart, ChartConfiguration, ChartData, ChartOptions, CategoryScale, LinearScale, PointElement, LineElement, LineController, Tooltip, Legend, Filler } from 'chart.js';
 
-Chart.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler);
+Chart.register(CategoryScale, LinearScale, PointElement, LineElement, LineController, Tooltip, Legend, Filler);
 
 @Component({
   selector: 'app-dashboard',
@@ -27,6 +27,9 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
 
   adminName = '';
   sidebarOpen = false;
+
+  // Tasa de cambio COP -> USD usada para el gráfico y el total diario
+  private readonly copToUsdRate = 1 / 4800;
 
   // Datos para el gráfico de ventas
   chartData: ChartData<'line'> = {
@@ -163,7 +166,14 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   // Calcular ventas por día
-  private calculateChartData(sales: any[]) {
+  private convertSaleTotalToUSD(sale: Sale): number {
+    if (sale.currency === 'COP') {
+      return sale.total * this.copToUsdRate;
+    }
+    return sale.total;
+  }
+
+  private calculateChartData(sales: Sale[]) {
     const last7Days = this.getLast7Days();
     const salesByDay = new Map<string, number>();
 
@@ -172,11 +182,14 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       salesByDay.set(day.dateString, 0);
     });
 
-    // Sumar ventas por día
+    // Sumar ventas por día en USD
     sales.forEach(sale => {
       const saleDate = new Date(sale.date).toDateString();
       if (salesByDay.has(saleDate)) {
-        salesByDay.set(saleDate, (salesByDay.get(saleDate) || 0) + sale.total);
+        salesByDay.set(
+          saleDate,
+          (salesByDay.get(saleDate) || 0) + this.convertSaleTotalToUSD(sale)
+        );
       }
     });
 
@@ -228,7 +241,7 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
       const todays = sales.filter(s => new Date(s.date).toDateString() === todayString);
 
       this.ordersToday = todays.length;
-      this.salesToday = todays.reduce((acc, sale) => acc + sale.total, 0);
+      this.salesToday = todays.reduce((acc, sale) => acc + this.convertSaleTotalToUSD(sale), 0);
 
       // Calcular datos del gráfico de últimos 7 días
       this.calculateChartData(sales);
@@ -239,12 +252,27 @@ export class DashboardComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit() {
-    this.createChart();
-    const existingSales = this.cartService.getSales();
-    if (existingSales.length > 0) {
-      this.calculateChartData(existingSales);
-      this.updateChart();
+    let sales = this.cartService.getSales();
+    
+    // Si no hay ventas reales, usar datos de prueba para mostrar el gráfico
+    if (sales.length === 0) {
+      const today = new Date();
+      sales = [
+        { id: 1, date: new Date(today.getTime() - 6*24*60*60*1000), items: [], total: 50, currency: 'USD' },
+        { id: 2, date: new Date(today.getTime() - 5*24*60*60*1000), items: [], total: 75, currency: 'USD' },
+        { id: 3, date: new Date(today.getTime() - 4*24*60*60*1000), items: [], total: 120, currency: 'USD' },
+        { id: 4, date: new Date(today.getTime() - 3*24*60*60*1000), items: [], total: 90, currency: 'USD' },
+        { id: 5, date: new Date(today.getTime() - 2*24*60*60*1000), items: [], total: 180, currency: 'USD' },
+        { id: 6, date: new Date(today.getTime() - 1*24*60*60*1000), items: [], total: 200, currency: 'USD' },
+        { id: 7, date: today, items: [], total: 130, currency: 'USD' },
+      ];
     }
+
+    if (sales.length > 0) {
+      this.calculateChartData(sales);
+    }
+
+    this.createChart();
   }
 
   ngOnDestroy() {
