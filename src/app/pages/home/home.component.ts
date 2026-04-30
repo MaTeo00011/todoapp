@@ -1,7 +1,9 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterModule, Router } from '@angular/router';
 import { CartService } from '../../services/cart.service';
+import { NotificationService } from '../../services/notification.service';
 import { ProductService, Product } from '../../services/product.service';
 import { AuthService, AppUser } from '../../services/auth.service';
 
@@ -15,14 +17,42 @@ interface CarouselSlide {
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, FormsModule],
   templateUrl: './home.component.html',
   styleUrl: './home.component.css'
 })
 export class HomeComponent implements OnInit, OnDestroy {
   
   products: Product[] = [];
+  filteredProducts: Product[] = [];
   currentUser: AppUser | null = null;
+  
+  // Búsqueda y filtros
+  searchTerm: string = '';
+  selectedCategory: string = '';
+  selectedCurrency: '' | 'COP' | 'USD' = '';
+  selectedStock: 'all' | 'in' | 'out' = 'all';
+  priceFilter: Record<'COP' | 'USD', { min: number; max: number }> = {
+    COP: { min: 0, max: 0 },
+    USD: { min: 0, max: 0 }
+  };
+  maxPriceByCurrency: Record<'COP' | 'USD', number> = {
+    COP: 0,
+    USD: 0
+  };
+  showFilters: boolean = false;
+  categories: string[] = [];
+  currencyOptions: ('COP' | 'USD')[] = ['COP', 'USD'];
+
+  get sales$() {
+    return this.cartService.sales$;
+  }
+
+  formatSalePrice(amount: number, currency: 'COP' | 'USD'): string {
+    return currency === 'COP'
+      ? `$${Math.round(amount).toLocaleString('es-CO')} COP`
+      : `$${amount.toFixed(2)} USD`;
+  }
   
   // CARRUSEL
   slides: CarouselSlide[] = [
@@ -60,6 +90,7 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   constructor(
     public cartService: CartService,
+    private notificationService: NotificationService,
     private productService: ProductService,
     private authService: AuthService,
     private router: Router
@@ -68,12 +99,14 @@ export class HomeComponent implements OnInit, OnDestroy {
   logoutAdmin() {
     this.authService.logout();
     this.isAdmin = false;
+    this.notificationService.notify('Sesión de administrador cerrada.', 'info');
     this.router.navigate(['/']);
   }
 
   logoutUser() {
     this.authService.logout();
     this.currentUser = null;
+    this.notificationService.notify('Sesión cerrada. ¡Hasta pronto!', 'info');
     this.router.navigate(['/']);
   }
 
@@ -81,6 +114,9 @@ export class HomeComponent implements OnInit, OnDestroy {
     // Cargar productos
     this.productService.products$.subscribe(products => {
       this.products = products;
+      this.updatePriceFilters();
+      this.loadCategories();
+      this.applyFilters();
     });
 
     // Verificar usuario actual
@@ -144,7 +180,10 @@ export class HomeComponent implements OnInit, OnDestroy {
   // ===== MÉTODOS EXISTENTES =====
   
   addToCart(product: Product) {
-    this.cartService.addToCart(product);
+    const added = this.cartService.addToCart(product);
+    if (added) {
+      this.notificationService.notify(`Añadido al carrito: ${product.name}`, 'success');
+    }
   }
 
   scrollToProducts() {
@@ -159,5 +198,103 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   openCart() {
     this.cartService.openSidebar();
+  }
+
+  // ===== MÉTODOS DE BÚSQUEDA Y FILTROS =====
+
+  loadCategories() {
+    // Extraer categorías únicas de los productos
+    const uniqueCategories = Array.from(
+      new Set(this.products.map(p => p.category).filter(Boolean))
+    ) as string[];
+    this.categories = uniqueCategories.sort();
+  }
+
+  onSearchChange() {
+    this.applyFilters();
+  }
+
+  onCategoryChange() {
+    this.applyFilters();
+  }
+
+  onCurrencyChange() {
+    this.applyFilters();
+  }
+
+  onStockChange() {
+    this.applyFilters();
+  }
+
+  onPriceChange() {
+    this.applyFilters();
+  }
+
+  resetFilters() {
+    this.searchTerm = '';
+    this.selectedCategory = '';
+    this.selectedCurrency = '';
+    this.selectedStock = 'all';
+    this.priceFilter.COP = { min: 0, max: this.maxPriceByCurrency.COP };
+    this.priceFilter.USD = { min: 0, max: this.maxPriceByCurrency.USD };
+    this.applyFilters();
+  }
+
+  private updatePriceFilters() {
+    const copPrices = this.products.filter(p => p.currency === 'COP').map(p => p.price);
+    const usdPrices = this.products.filter(p => p.currency === 'USD').map(p => p.price);
+
+    this.maxPriceByCurrency.COP = copPrices.length ? Math.max(...copPrices) : 0;
+    this.maxPriceByCurrency.USD = usdPrices.length ? Math.max(...usdPrices) : 0;
+
+    if (this.priceFilter.COP.max > this.maxPriceByCurrency.COP || this.priceFilter.COP.max === 0) {
+      this.priceFilter.COP.max = this.maxPriceByCurrency.COP;
+    }
+
+    if (this.priceFilter.USD.max > this.maxPriceByCurrency.USD || this.priceFilter.USD.max === 0) {
+      this.priceFilter.USD.max = this.maxPriceByCurrency.USD;
+    }
+  }
+
+  applyFilters() {
+    this.filteredProducts = this.products.filter(product => {
+      // Filtro por búsqueda
+      const searchMatch = 
+        product.name.toLowerCase().includes(this.searchTerm.toLowerCase()) ||
+        product.description.toLowerCase().includes(this.searchTerm.toLowerCase());
+
+      // Filtro por categoría
+      const categoryMatch = 
+        !this.selectedCategory || product.category === this.selectedCategory;
+
+      // Filtro por moneda
+      const currencyMatch = 
+        !this.selectedCurrency || product.currency === this.selectedCurrency;
+
+      // Filtro por stock
+      const stockMatch =
+        this.selectedStock === 'all' ||
+        (this.selectedStock === 'in' && product.stock > 0) ||
+        (this.selectedStock === 'out' && product.stock === 0);
+
+      // Filtro por precio según la moneda del producto
+      const currentPriceFilter = this.priceFilter[product.currency];
+      const priceMatch = 
+        product.price >= currentPriceFilter.min && 
+        product.price <= currentPriceFilter.max;
+
+      return searchMatch && categoryMatch && currencyMatch && stockMatch && priceMatch;
+    });
+  }
+
+  toggleFilters() {
+    this.showFilters = !this.showFilters;
+  }
+
+  getResultsText(): string {
+    if (this.filteredProducts.length === 0) {
+      return 'Sin resultados';
+    }
+    return `${this.filteredProducts.length} producto${this.filteredProducts.length > 1 ? 's' : ''} encontrado${this.filteredProducts.length > 1 ? 's' : ''}`;
   }
 }

@@ -40,12 +40,17 @@
         </div>
         <div class="total-row">
           <span>Envío:</span>
-          <strong>Gratis</strong>
+          <strong>{{ getShippingLabel(cartTotal, currency) }}</strong>
         </div>
         <div class="total-row final">
           <span>Total:</span>
-          <strong>{{ formatPrice(cartTotal) }}</strong>
+          <strong>{{ formatPrice(getOrderTotal(cartTotal, currency)) }}</strong>
         </div>
+      </div>
+      <div class="shipping-note">
+        <p>
+          Envío gratis en compras superiores a {{ formatPrice(getShippingThreshold(currency)) }}.
+        </p>
       </div>
     </div>
 
@@ -178,7 +183,9 @@
       <div class="confirm-box">
         <div class="confirm-section">
           <h3>📦 Pedido</h3>
-          <p>{{ cartItems.length }} producto{{ cartItems.length > 1 ? 's' : '' }} | Total: <strong>{{ formatPrice(cartTotal) }}</strong></p>
+          <p>{{ cartItems.length }} producto{{ cartItems.length > 1 ? 's' : '' }} | Subtotal: <strong>{{ formatPrice(cartTotal) }}</strong></p>
+          <p>Envío: <strong>{{ getShippingLabel(cartTotal, currency) }}</strong></p>
+          <p>Total final: <strong>{{ formatPrice(getOrderTotal(cartTotal, currency)) }}</strong></p>
         </div>
 
         <div class="confirm-section">

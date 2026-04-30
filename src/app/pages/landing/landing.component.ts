@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { GymUserService, GymUser } from '../../services/gym-user.service';
+import { NotificationService } from '../../services/notification.service';
 
 // Interface para las slides del carrusel
 interface CarouselSlide {
@@ -61,7 +62,8 @@ export class LandingComponent implements OnInit, OnDestroy {
   constructor(
     private router: Router,
     private authService: AuthService,
-    private gymUserService: GymUserService
+    private gymUserService: GymUserService,
+    private notificationService: NotificationService
   ) {}
 
   ngOnInit() {
@@ -124,6 +126,7 @@ export class LandingComponent implements OnInit, OnDestroy {
     if (user) {
       // Usuario encontrado, guardar en auth y ir a tienda
       this.authService.loginUser(`${user.firstName} ${user.lastName}`);
+      this.notificationService.notify(`¡Bienvenido ${user.firstName} ${user.lastName}!`, 'success');
       this.closeUserLogin();
       this.router.navigate(['/home']);
     } else {

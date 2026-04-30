@@ -112,4 +112,14 @@
   .login-form button {
     font-size: 0.95rem;
   }
+
+  .logout-btn {
+  color: white;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
 }

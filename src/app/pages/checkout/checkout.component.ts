@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CartService, CartItem } from '../../services/cart.service';
 
@@ -16,7 +16,7 @@ interface CustomerInfo {
 @Component({
   selector: 'app-checkout',
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './checkout.component.html',
   styleUrl: './checkout.component.css'
 })
@@ -26,6 +26,8 @@ export class CheckoutComponent implements OnInit {
   currency: 'COP' | 'USD' = 'USD';
   currentStep: 'review' | 'shipping' | 'payment' | 'confirm' = 'review';
   isProcessing = false;
+  readonly freeShippingThresholdCOP = 100000;
+  readonly copToUsdRate = 5000;
 
   customerInfo: CustomerInfo = {
     email: '',
@@ -40,7 +42,7 @@ export class CheckoutComponent implements OnInit {
 
   ngOnInit() {
     if (this.cartItems.length === 0) {
-      this.cartService.cartItems$.subscribe(items => {
+        this.cartService.cartItems$.subscribe(items => {
         this.cartItems = items;
         this.currency = this.cartService.getCurrency();
       });
@@ -124,6 +126,34 @@ export class CheckoutComponent implements OnInit {
     } else {
       this.previousStep();
     }
+  }
+
+  getShippingThreshold(currency: 'COP' | 'USD'): number {
+    return currency === 'COP'
+      ? this.freeShippingThresholdCOP
+      : Math.round(this.freeShippingThresholdCOP / this.copToUsdRate);
+  }
+
+  isShippingFree(amount: number, currency: 'COP' | 'USD'): boolean {
+    return amount >= this.getShippingThreshold(currency);
+  }
+
+  getShippingCost(amount: number, currency: 'COP' | 'USD'): number {
+    return this.isShippingFree(amount, currency) ? 0 : (currency === 'COP' ? 12000 : 2.5);
+  }
+
+  getShippingLabel(amount: number, currency: 'COP' | 'USD'): string {
+    if (this.isShippingFree(amount, currency)) {
+      return 'Gratis';
+    }
+    const cost = this.getShippingCost(amount, currency);
+    return currency === 'COP'
+      ? `$${Math.round(cost).toLocaleString('es-CO')} COP`
+      : `$${cost.toFixed(2)} USD`;
+  }
+
+  getOrderTotal(amount: number, currency: 'COP' | 'USD'): number {
+    return amount + this.getShippingCost(amount, currency);
   }
 
   formatPrice(price: number): string {

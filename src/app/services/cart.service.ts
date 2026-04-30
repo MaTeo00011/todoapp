@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
+import { NotificationService } from './notification.service';
 import { ProductService } from './product.service';
 
 // Interface para tipar nuestros productos en el carrito
@@ -19,6 +20,7 @@ export interface Sale {
   date: Date;
   items: CartItem[];
   total: number;
+  shippingCost?: number;
   currency: 'COP' | 'USD';
 }
 
@@ -38,6 +40,12 @@ export class CartService {
   private cartTotal = new BehaviorSubject<number>(0);
   cartTotal$ = this.cartTotal.asObservable();
   
+  // Umbrales y costos de envío
+  readonly freeShippingThresholdCOP = 100000;
+  readonly copToUsdRate = 5000;
+  readonly defaultShippingCOP = 12000;
+  readonly defaultShippingUSD = 2.5;
+
   // Estado del sidebar (abierto/cerrado)
   private sidebarOpen = new BehaviorSubject<boolean>(false);
   sidebarOpen$ = this.sidebarOpen.asObservable();
@@ -47,14 +55,90 @@ export class CartService {
   sales$ = this.sales.asObservable();
   private nextSaleId = 1;
 
-  constructor(private productService: ProductService) {
+  constructor(private productService: ProductService, private notificationService: NotificationService) {
     // Opcional: Cargar carrito y ventas desde localStorage al iniciar
     this.loadCartFromStorage();
     this.loadSalesFromStorage();
+    this.syncCartWithProductUpdates();
+  }
+
+  private syncCartWithProductUpdates() {
+    this.productService.products$.subscribe(products => {
+      const currentCart = this.cartItems.value;
+      let changed = false;
+
+      const updatedCart = currentCart.reduce<CartItem[]>((cart, item) => {
+        const product = products.find(p => p.id === item.id);
+
+        // Producto eliminado desde admin
+        if (!product) {
+          changed = true;
+          this.notificationService.notify(
+            `El producto ${item.name} ya no está disponible y fue eliminado del carrito.`,
+            'info'
+          );
+          return cart;
+        }
+
+        // Producto agotado desde admin
+        if (product.stock === 0) {
+          changed = true;
+          this.notificationService.notify(
+            `El producto ${product.name} está agotado y fue eliminado del carrito.`,
+            'error'
+          );
+          return cart;
+        }
+
+        let updatedItem: CartItem = {
+          ...item,
+          price: product.price,
+          currency: product.currency,
+          maxStock: product.stock,
+          name: product.name,
+          image: product.image,
+          icon: product.icon
+        };
+
+        // Si la cantidad actual supera el stock actualizado, se reduce al stock disponible
+        if (updatedItem.quantity > product.stock) {
+          updatedItem = {
+            ...updatedItem,
+            quantity: product.stock
+          };
+          changed = true;
+          this.notificationService.notify(
+            `La cantidad de ${product.name} se ajustó a ${product.stock} por disponibilidad de stock.`,
+            'info'
+          );
+        }
+
+        if (
+          updatedItem.price !== item.price ||
+          updatedItem.currency !== item.currency ||
+          updatedItem.maxStock !== item.maxStock ||
+          updatedItem.name !== item.name ||
+          updatedItem.image !== item.image ||
+          updatedItem.icon !== item.icon ||
+          updatedItem.quantity !== item.quantity
+        ) {
+          changed = true;
+        }
+
+        cart.push(updatedItem);
+        return cart;
+      }, []);
+
+      if (changed) {
+        this.cartItems.next(updatedCart);
+        this.calculateTotal();
+        this.saveCartToStorage();
+      }
+    });
   }
 
   // 🛒 AGREGAR producto al carrito
-  addToCart(product: any) {
+  addToCart(product: any): boolean {
     const currentCart = this.cartItems.value;
     
     // Verificar si el producto ya existe en el carrito
@@ -66,7 +150,7 @@ export class CartService {
         existingItem.quantity++;
       } else {
         alert(`⚠️ Stock máximo alcanzado para ${product.name}`);
-        return;
+        return false;
       }
     } else {
       // Si no existe, agregarlo como nuevo item
@@ -90,6 +174,7 @@ export class CartService {
     
     // Abrir el sidebar automáticamente
     this.openSidebar();
+    return true;
   }
 
   // ➕ AUMENTAR cantidad
@@ -203,6 +288,9 @@ export class CartService {
   checkout() {
     const currentCart = this.cartItems.value;
     const total = this.cartTotal.value;
+    const currency = this.getCurrency();
+    const shippingCost = this.getShippingCost(total, currency);
+    const finalTotal = total + shippingCost;
 
     if (currentCart.length === 0) {
       alert('El carrito está vacío. Agrega productos antes de finalizar compra.');
@@ -234,15 +322,16 @@ export class CartService {
       id: this.nextSaleId++,
       date: new Date(),
       items: JSON.parse(JSON.stringify(currentCart)),
-      total,
-      currency: this.getCurrency()
+      total: finalTotal,
+      shippingCost,
+      currency
     };
 
     this.sales.next([...this.sales.value, newSale]);
     this.saveSalesToStorage();
 
     this.clearCart();
-    alert(`🎉 Compra registrada. Total de venta: ${this.formatPrice(total, newSale.currency)}`);
+    alert(`🎉 Compra registrada. Total de venta: ${this.formatPrice(finalTotal, newSale.currency)}`);
   }
 
   // 💱 Obtener moneda del carrito (o USD por defecto)
@@ -257,6 +346,26 @@ export class CartService {
       return `$${Math.round(price).toLocaleString('es-CO')} COP`;
     }
     return `$${price.toFixed(2)} USD`;
+  }
+
+  getShippingThreshold(currency: 'COP' | 'USD'): number {
+    return currency === 'COP'
+      ? this.freeShippingThresholdCOP
+      : Math.round(this.freeShippingThresholdCOP / this.copToUsdRate);
+  }
+
+  isShippingFree(amount: number, currency: 'COP' | 'USD'): boolean {
+    return amount >= this.getShippingThreshold(currency);
+  }
+
+  getShippingCost(amount: number, currency: 'COP' | 'USD'): number {
+    return this.isShippingFree(amount, currency)
+      ? 0
+      : (currency === 'COP' ? this.defaultShippingCOP : this.defaultShippingUSD);
+  }
+
+  getOrderTotal(amount: number, currency: 'COP' | 'USD'): number {
+    return amount + this.getShippingCost(amount, currency);
   }
 
   // 📊 OBTENER cantidad total de items

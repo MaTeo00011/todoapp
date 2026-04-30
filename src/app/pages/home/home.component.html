@@ -74,30 +74,166 @@
   <h2 class="section-title">Nuestros Productos Estrella</h2>
   <p class="section-subtitle">Calidad profesional para resultados extraordinarios</p>
   
-  <div class="product-grid">
-    <div class="product-card" *ngFor="let product of products">
-      <!-- Mostrar imagen si existe, sino emoji -->
-      <div class="product-image-container" *ngIf="product.image; else showIcon">
-        <img [src]="product.image" [alt]="product.name" class="product-image">
+  <!-- Barra de búsqueda y filtros -->
+  <div class="search-section">
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input 
+        type="text" 
+        placeholder="Buscar productos..." 
+        [(ngModel)]="searchTerm"
+        (ngModelChange)="onSearchChange()"
+        class="search-input">
+      <button class="filter-toggle" (click)="toggleFilters()">
+        ⚙️ Filtros
+      </button>
+    </div>
+
+    <!-- Panel de filtros (colapsable) -->
+    <div class="filters-panel" *ngIf="showFilters">
+      <div class="filter-group">
+        <label>Categoría</label>
+        <select [(ngModel)]="selectedCategory" (ngModelChange)="onCategoryChange()" class="filter-select">
+          <option value="">Todas las categorías</option>
+          <option *ngFor="let cat of categories" [value]="cat">{{ cat }}</option>
+        </select>
       </div>
-      <ng-template #showIcon>
-        <span class="product-icon">{{ product.icon }}</span>
-      </ng-template>
+
+      <div class="filter-group">
+        <label>Moneda</label>
+        <select [(ngModel)]="selectedCurrency" (ngModelChange)="onCurrencyChange()" class="filter-select">
+          <option value="">Todas las monedas</option>
+          <option *ngFor="let currency of currencyOptions" [value]="currency">{{ currency }}</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Stock</label>
+        <select [(ngModel)]="selectedStock" (ngModelChange)="onStockChange()" class="filter-select">
+          <option value="all">Todos</option>
+          <option value="in">Disponibles</option>
+          <option value="out">Agotados</option>
+        </select>
+      </div>
+
+      <div class="filter-row currency-filters-row">
+        <div class="filter-group">
+          <label>Precio máximo USD: ${{ priceFilter.USD.max | number:'1.0-0' }}</label>
+          <input 
+            type="range" 
+            min="0" 
+            [max]="maxPriceByCurrency.USD || 1" 
+            step="1"
+            [(ngModel)]="priceFilter.USD.max"
+            (ngModelChange)="onPriceChange()"
+            class="price-slider"
+            [disabled]="maxPriceByCurrency.USD === 0">
+        </div>
+
+        <div class="filter-group currency-filter-cop">
+          <label>Precio máximo COP: ${{ priceFilter.COP.max | number:'1.0-0' }}</label>
+          <input 
+            type="range" 
+            min="0" 
+            [max]="maxPriceByCurrency.COP || 1" 
+            step="1"
+            [(ngModel)]="priceFilter.COP.max"
+            (ngModelChange)="onPriceChange()"
+            class="price-slider"
+            [disabled]="maxPriceByCurrency.COP === 0">
+        </div>
+      </div>
+
+      <button class="reset-btn" (click)="resetFilters()">
+        ↺ Limpiar Filtros
+      </button>
+    </div>
+
+    <!-- Contador de resultados -->
+    <div class="results-info">
+      {{ getResultsText() }}
+    </div>
+  </div>
+  
+  <ng-container *ngIf="filteredProducts.length > 0; else noResults">
+    <div class="product-grid">
+      <div class="product-card" *ngFor="let product of filteredProducts">
+        <!-- Mostrar imagen si existe, sino emoji -->
+        <div class="product-image-container" *ngIf="product.image; else showIcon">
+          <img [src]="product.image" [alt]="product.name" class="product-image">
+        </div>
+        <ng-template #showIcon>
+          <span class="product-icon">{{ product.icon }}</span>
+        </ng-template>
       
       <h3>{{ product.name }}</h3>
       <p>{{ product.description }}</p>
-      <div class="price">
-        <span *ngIf="product.currency === 'COP'; else showUSD">
-          ${{ product.price.toLocaleString('es-CO') }}
-        </span>
-        <ng-template #showUSD>
-          ${{ product.price.toFixed(2) }} USD
-        </ng-template>
+      <div class="product-meta">
+        <div class="price">
+          <span *ngIf="product.currency === 'COP'; else showUSD">
+            ${{ product.price.toLocaleString('es-CO') }} COP
+          </span>
+          <ng-template #showUSD>
+            ${{ product.price.toFixed(2) }} USD
+          </ng-template>
+        </div>
+        <div class="stock-label" [class.out-of-stock]="product.stock === 0">
+          <span *ngIf="product.stock > 0">{{ product.stock }} disponibles</span>
+          <span *ngIf="product.stock === 0">Agotado</span>
+        </div>
       </div>
-      <button class="buy-button" (click)="addToCart(product)">
-        Añadir al Carrito
+
+      <button 
+        class="buy-button" 
+        (click)="addToCart(product)"
+        [disabled]="product.stock === 0">
+        {{ product.stock === 0 ? 'No disponible' : 'Añadir al Carrito' }}
       </button>
     </div>
+    </div>
+  </ng-container>
+
+  <!-- Plantilla para sin resultados -->
+  <ng-template #noResults>
+    <div class="no-results">
+      <div class="no-results-icon">🔍</div>
+      <h3>No se encontraron productos</h3>
+      <p>Intenta cambiar tus filtros o términos de búsqueda</p>
+      <button class="btn-reset" (click)="resetFilters()">Limpiar Filtros</button>
+    </div>
+  </ng-template>
+</section>
+
+<section class="order-history">
+  <div class="section-header">
+    <h2 class="section-title">Historial de Pedidos</h2>
+    <p class="section-subtitle">Revisa las compras recientes registradas en el sistema.</p>
+  </div>
+
+  <div *ngIf="(sales$ | async) as sales">
+    <div *ngIf="sales.length > 0; else noOrders">
+      <div class="order-card" *ngFor="let sale of sales | slice: -5">
+        <div class="order-info">
+          <div class="order-date">{{ sale.date | date:'medium' }}</div>
+          <div class="order-items">Productos: {{ sale.items.length }}</div>
+          <div class="order-shipping" *ngIf="sale.shippingCost !== undefined">
+            Envío: {{ formatSalePrice(sale.shippingCost, sale.currency) }}
+          </div>
+          <div class="order-total">Total: {{ formatSalePrice(sale.total, sale.currency) }}</div>
+        </div>
+        <div class="order-products">
+          <span *ngFor="let item of sale.items; let i = index">
+            {{ item.name }} x{{ item.quantity }}<span *ngIf="i < sale.items.length - 1">, </span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <ng-template #noOrders>
+      <div class="no-orders">
+        <p>Por ahora no hay pedidos registrados. Realiza una compra para que aparezca aquí.</p>
+      </div>
+    </ng-template>
   </div>
 </section>
 
