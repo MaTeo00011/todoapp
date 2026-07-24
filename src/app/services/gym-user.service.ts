@@ -21,13 +21,15 @@ export interface GymUser {
   updatedAt: Date;
 }
 
+import { API_BASE_URL } from '../app.constants';
+
 @Injectable({
   providedIn: 'root'
 })
 export class GymUserService {
 
   // BehaviorSubject para lista de usuarios
-  private apiUrl = 'http://localhost:3000/api/usuarios';
+  private apiUrl = `${API_BASE_URL}/api/usuarios`;
 
   private users = new BehaviorSubject<GymUser[]>([]);
   users$ = this.users.asObservable();

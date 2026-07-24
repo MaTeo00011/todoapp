@@ -1,6 +1,7 @@
 ﻿import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, catchError, map, of, tap } from 'rxjs';
+import { API_BASE_URL } from '../app.constants';
 
 // Interface para usuarios del gimnasio
 export interface GymUser {
@@ -25,7 +26,7 @@ export interface GymUser {
   providedIn: 'root'
 })
 export class GymUserService {
-  private apiUrl = 'http://localhost:3000/api/usuarios';
+  private apiUrl = `${API_BASE_URL}/api/usuarios`;
 
   private users = new BehaviorSubject<GymUser[]>([]);
   users$ = this.users.asObservable();
