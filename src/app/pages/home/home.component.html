@@ -1,11 +1,24 @@
 <!-- Header con carrito -->
 <header class="top-header">
   <div class="header-content">
-    <h3 class="logo">💪 FitPro</h3>
+    <div class="logo-and-nav">
+      <h3 class="logo">💪 FitPro</h3>
+      <nav class="main-nav">
+        <a routerLink="/home">Inicio</a>
+        <a routerLink="/home#productos">Tienda</a>
+        <a routerLink="/register">Registro</a>
+        <a routerLink="/admin/login">Admin</a>
+      </nav>
+    </div>
     <div class="user-info">
       <!-- Mostrar nombre del usuario si está logueado -->
       <div *ngIf="currentUser && currentUser.role === 'user'" class="user-greeting">
-        <span class="welcome-text">¡Hola, {{ currentUser.username }}!</span>
+        <div class="user-welcome">
+          <span class="welcome-text">¡Hola, {{ currentUser.username }}!</span>
+          <span *ngIf="currentUser.status" class="status-pill" [ngClass]="currentUser.status">
+            {{ currentUser.status | titlecase }}
+          </span>
+        </div>
         <button (click)="logoutUser()" class="logout-btn">Cerrar sesión</button>
       </div>
       <!-- Mostrar opciones de admin si está logueado como admin -->
@@ -183,12 +196,15 @@
         </div>
       </div>
 
-      <button 
-        class="buy-button" 
-        (click)="addToCart(product)"
-        [disabled]="product.stock === 0">
-        {{ product.stock === 0 ? 'No disponible' : 'Añadir al Carrito' }}
-      </button>
+      <div class="product-actions">
+        <button 
+          class="buy-button" 
+          (click)="addToCart(product)"
+          [disabled]="product.stock === 0">
+          {{ product.stock === 0 ? 'No disponible' : 'Añadir al Carrito' }}
+        </button>
+        <a class="detail-button" [routerLink]="['/product', product.id]">Ver Detalle</a>
+      </div>
     </div>
     </div>
   </ng-container>
@@ -210,31 +226,56 @@
     <p class="section-subtitle">Revisa las compras recientes registradas en el sistema.</p>
   </div>
 
-  <div *ngIf="(sales$ | async) as sales">
-    <div *ngIf="sales.length > 0; else noOrders">
-      <div class="order-card" *ngFor="let sale of sales | slice: -5">
-        <div class="order-info">
-          <div class="order-date">{{ sale.date | date:'medium' }}</div>
-          <div class="order-items">Productos: {{ sale.items.length }}</div>
-          <div class="order-shipping" *ngIf="sale.shippingCost !== undefined">
-            Envío: {{ formatSalePrice(sale.shippingCost, sale.currency) }}
-          </div>
-          <div class="order-total">Total: {{ formatSalePrice(sale.total, sale.currency) }}</div>
+  <ng-container *ngIf="serverSales.length > 0; else localHistory">
+    <p class="history-note">Pedidos guardados en el servidor para tu cuenta.</p>
+    <div class="order-card" *ngFor="let sale of serverSales | slice: -5">
+      <div class="order-info">
+        <div class="order-date">{{ sale.createdAt | date:'medium' }}</div>
+        <div class="order-items">Productos: {{ sale.items.length }}</div>
+        <div class="order-shipping" *ngIf="sale.shippingCost !== undefined">
+          Envío: {{ formatSalePrice(sale.shippingCost, sale.currency) }}
         </div>
-        <div class="order-products">
-          <span *ngFor="let item of sale.items; let i = index">
-            {{ item.name }} x{{ item.quantity }}<span *ngIf="i < sale.items.length - 1">, </span>
-          </span>
+        <div class="order-total">Total: {{ formatSalePrice(sale.total, sale.currency) }}</div>
+        <div class="order-actions" *ngIf="sale.id">
+          <a [routerLink]="['/order', sale.id]" class="order-detail-link">Ver detalle</a>
         </div>
+      </div>
+      <div class="order-products">
+        <span *ngFor="let item of sale.items; let i = index">
+          {{ item.name }} x{{ item.quantity }}<span *ngIf="i < sale.items.length - 1">, </span>
+        </span>
       </div>
     </div>
+  </ng-container>
 
-    <ng-template #noOrders>
-      <div class="no-orders">
-        <p>Por ahora no hay pedidos registrados. Realiza una compra para que aparezca aquí.</p>
+  <ng-template #localHistory>
+    <div *ngIf="(sales$ | async) as sales">
+      <p *ngIf="currentUser && sales.length === 0" class="history-note">No se encontraron pedidos en el servidor. Aquí está tu historial local.</p>
+      <div *ngIf="sales.length > 0; else noOrders">
+        <div class="order-card" *ngFor="let sale of sales | slice: -5">
+          <div class="order-info">
+            <div class="order-date">{{ sale.date | date:'medium' }}</div>
+            <div class="order-items">Productos: {{ sale.items.length }}</div>
+            <div class="order-shipping" *ngIf="sale.shippingCost !== undefined">
+              Envío: {{ formatSalePrice(sale.shippingCost, sale.currency) }}
+            </div>
+            <div class="order-total">Total: {{ formatSalePrice(sale.total, sale.currency) }}</div>
+          </div>
+          <div class="order-products">
+            <span *ngFor="let item of sale.items; let i = index">
+              {{ item.name }} x{{ item.quantity }}<span *ngIf="i < sale.items.length - 1">, </span>
+            </span>
+          </div>
+        </div>
       </div>
-    </ng-template>
-  </div>
+
+      <ng-template #noOrders>
+        <div class="no-orders">
+          <p>Por ahora no hay pedidos registrados. Realiza una compra para que aparezca aquí.</p>
+        </div>
+      </ng-template>
+    </div>
+  </ng-template>
 </section>
 
 <!-- Features -->

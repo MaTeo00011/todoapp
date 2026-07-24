@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { NotificationService } from './notification.service';
 import { ProductService } from './product.service';
+import { AuthService, AppUser } from './auth.service';
 
 // Interface para tipar nuestros productos en el carrito
 export interface CartItem {
@@ -55,11 +56,20 @@ export class CartService {
   sales$ = this.sales.asObservable();
   private nextSaleId = 1;
 
-  constructor(private productService: ProductService, private notificationService: NotificationService) {
+  constructor(
+    private productService: ProductService,
+    private notificationService: NotificationService,
+    private authService: AuthService
+  ) {
     // Opcional: Cargar carrito y ventas desde localStorage al iniciar
     this.loadCartFromStorage();
     this.loadSalesFromStorage();
     this.syncCartWithProductUpdates();
+
+    this.authService.currentUser$.subscribe(() => {
+      this.loadCartFromStorage();
+      this.loadSalesFromStorage();
+    });
   }
 
   private syncCartWithProductUpdates() {
@@ -144,12 +154,13 @@ export class CartService {
     // Verificar si el producto ya existe en el carrito
     const existingItem = currentCart.find(item => item.id === product.id);
     
-    if (existingItem) {
+        if (existingItem) {
       // Si existe, aumentar cantidad (respetando límite)
       if (existingItem.quantity < existingItem.maxStock) {
         existingItem.quantity++;
       } else {
-        alert(`⚠️ Stock máximo alcanzado para ${product.name}`);
+        // Usar NotificationService si está disponible
+        try { this.notificationService.notify(`⚠️ Stock máximo alcanzado para ${product.name}`, 'error'); } catch { /* fallback */ }
         return false;
       }
     } else {
@@ -215,7 +226,7 @@ export class CartService {
   clearCart() {
     this.cartItems.next([]);
     this.cartTotal.next(0);
-    localStorage.removeItem('cart');
+    localStorage.removeItem(this.getCartStorageKey());
   }
 
   // 💰 CALCULAR total
@@ -237,23 +248,37 @@ export class CartService {
     this.sidebarOpen.next(false);
   }
 
+  private getStorageScope(): string {
+    const user = this.authService.getUser();
+    return user?.userId ? `user-${user.userId}` : 'guest';
+  }
+
+  private getCartStorageKey(): string {
+    return `cart-${this.getStorageScope()}`;
+  }
+
+  private getSalesStorageKey(): string {
+    return `sales-${this.getStorageScope()}`;
+  }
+
   // 💾 GUARDAR en localStorage (persistencia)
   private saveCartToStorage() {
-    localStorage.setItem('cart', JSON.stringify(this.cartItems.value));
+    localStorage.setItem(this.getCartStorageKey(), JSON.stringify(this.cartItems.value));
   }
 
   // 📥 CARGAR desde localStorage
   private loadCartFromStorage() {
-    const savedCart = localStorage.getItem('cart');
+    const savedCart = localStorage.getItem(this.getCartStorageKey());
     if (savedCart) {
       const cart = JSON.parse(savedCart);
       this.cartItems.next(cart);
       this.calculateTotal();
     }
   }
+
   // 📂 CARGAR ventas desde localStorage
   private loadSalesFromStorage() {
-    const savedSales = localStorage.getItem('sales');
+    const savedSales = localStorage.getItem(this.getSalesStorageKey());
     if (savedSales) {
       try {
         const sales: Sale[] = JSON.parse(savedSales).map((s: any) => ({
@@ -270,7 +295,7 @@ export class CartService {
 
   // 💾 GUARDAR ventas en localStorage
   private saveSalesToStorage() {
-    localStorage.setItem('sales', JSON.stringify(this.sales.value));
+    localStorage.setItem(this.getSalesStorageKey(), JSON.stringify(this.sales.value));
   }
 
   // ↩️ OBTENER ventas
@@ -284,8 +309,8 @@ export class CartService {
     return this.sales.value.filter(sale => new Date(sale.date).toDateString() === today);
   }
 
-  // 💳 Procesar checkout y crear registro de venta
-  checkout() {
+  // 💳 Crear un registro de venta local después de que el backend haya procesado la orden
+  checkout(): Sale | null {
     const currentCart = this.cartItems.value;
     const total = this.cartTotal.value;
     const currency = this.getCurrency();
@@ -293,28 +318,20 @@ export class CartService {
     const finalTotal = total + shippingCost;
 
     if (currentCart.length === 0) {
-      alert('El carrito está vacío. Agrega productos antes de finalizar compra.');
-      return;
+      try { this.notificationService.notify('El carrito está vacío. Agrega productos antes de finalizar compra.', 'info'); } catch {}
+      return null;
     }
 
-    // Validar stock y decrementar en producto
     for (const item of currentCart) {
       const product = this.productService.getProductById(item.id);
       if (!product) {
-        alert(`⚠️ El producto ${item.name} ya no está disponible.`);
-        return;
+        try { this.notificationService.notify(`⚠️ El producto ${item.name} ya no está disponible.`, 'error'); } catch {}
+        return null;
       }
 
       if (item.quantity > product.stock) {
-        alert(`⚠️ No hay suficiente stock de ${product.name} (disponible: ${product.stock}).`);
-        return;
-      }
-    }
-
-    for (const item of currentCart) {
-      const product = this.productService.getProductById(item.id);
-      if (product) {
-        this.productService.updateProduct(item.id, { stock: product.stock - item.quantity });
+        try { this.notificationService.notify(`⚠️ No hay suficiente stock de ${product.name} (disponible: ${product.stock}).`, 'error'); } catch {}
+        return null;
       }
     }
 
@@ -331,7 +348,8 @@ export class CartService {
     this.saveSalesToStorage();
 
     this.clearCart();
-    alert(`🎉 Compra registrada. Total de venta: ${this.formatPrice(finalTotal, newSale.currency)}`);
+    this.productService.loadProductsFromServer();
+    return newSale;
   }
 
   // 💱 Obtener moneda del carrito (o USD por defecto)

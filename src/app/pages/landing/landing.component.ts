@@ -3,8 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-import { GymUserService, GymUser } from '../../services/gym-user.service';
 import { NotificationService } from '../../services/notification.service';
+import { isEmptyString } from '../../utils/validation.util';
 
 // Interface para las slides del carrusel
 interface CarouselSlide {
@@ -58,11 +58,12 @@ export class LandingComponent implements OnInit, OnDestroy {
   showUserLogin = false;
   userName = '';
   showRegisterPrompt = false;
+  loginError = '';
+  userNameError = '';
 
   constructor(
     private router: Router,
     private authService: AuthService,
-    private gymUserService: GymUserService,
     private notificationService: NotificationService
   ) {}
 
@@ -109,30 +110,45 @@ export class LandingComponent implements OnInit, OnDestroy {
   closeUserLogin() {
     this.showUserLogin = false;
     this.showRegisterPrompt = false;
+    this.loginError = '';
   }
 
   loginAsUser() {
-    if (!this.userName.trim()) {
-      alert('Por favor ingresa tu nombre completo');
+    this.userNameError = this.validateUserName(this.userName);
+    if (this.userNameError) {
+      this.loginError = '';
       return;
     }
 
-    // Buscar usuario por nombre completo
-    const users = this.gymUserService.getUsers();
-    const user = users.find(u =>
-      `${u.firstName} ${u.lastName}`.toLowerCase() === this.userName.toLowerCase()
-    );
+    this.authService.loginUser(this.userName.trim()).subscribe(result => {
+      if (result.success) {
+        this.notificationService.notify(`¡Bienvenido ${this.userName.trim()}!`, 'success');
+        this.closeUserLogin();
+        this.router.navigate(['/home']);
+      } else {
+        this.userNameError = '';
+        this.loginError = result.error || 'No se pudo iniciar sesión. Verifica tu nombre o regístrate.';
+        if (this.loginError.toLowerCase().includes('usuario no encontrado')) {
+          this.showRegisterPrompt = true;
+        } else {
+          this.showRegisterPrompt = false;
+        }
+      }
+    });
+  }
 
-    if (user) {
-      // Usuario encontrado, guardar en auth y ir a tienda
-      this.authService.loginUser(`${user.firstName} ${user.lastName}`);
-      this.notificationService.notify(`¡Bienvenido ${user.firstName} ${user.lastName}!`, 'success');
-      this.closeUserLogin();
-      this.router.navigate(['/home']);
-    } else {
-      // Usuario no encontrado, mostrar prompt de registro
-      this.showRegisterPrompt = true;
+  validateUserName(name: string): string {
+    if (isEmptyString(name)) {
+      return 'Ingresa tu nombre completo para continuar.';
     }
+    const trimmed = name.trim();
+    if (trimmed.length < 3) {
+      return 'El nombre debe tener al menos 3 caracteres.';
+    }
+    if (!/[a-zA-ZáéíóúÁÉÍÓÚñÑ]+/.test(trimmed)) {
+      return 'Ingresa un nombre válido.';
+    }
+    return '';
   }
 
   goToRegisterFromModal() {

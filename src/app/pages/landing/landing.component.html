@@ -1,4 +1,12 @@
 <div class="landing-container">
+  <header class="landing-header">
+    <div class="landing-brand">💪 FitPro Gym</div>
+    <nav class="landing-nav">
+      <a routerLink="/home">Tienda</a>
+      <a routerLink="/register">Registro</a>
+      <a routerLink="/admin/login">Admin</a>
+    </nav>
+  </header>
   <div class="landing-hero">
     <!-- Carrusel de fondo (igual que home) -->
     <div class="carousel">
@@ -281,6 +289,9 @@
             required
             class="form-input">
         </div>
+
+        <div *ngIf="userNameError" class="login-error">{{ userNameError }}</div>
+        <div *ngIf="loginError && !userNameError" class="login-error">{{ loginError }}</div>
 
         <div class="form-actions">
           <button type="button" class="cancel-btn" (click)="closeUserLogin()">Cancelar</button>

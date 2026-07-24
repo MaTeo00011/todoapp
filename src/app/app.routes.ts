@@ -4,6 +4,9 @@ import { LabsComponent } from './pages/labs/labs.component';
 import { RegisterComponent } from './pages/register/register.component';
 import { LandingComponent } from './pages/landing/landing.component';
 import { CheckoutComponent } from './pages/checkout/checkout.component';
+import { OrderDetailComponent } from './pages/order-detail/order-detail.component';
+import { ProductDetailComponent } from './pages/product-detail/product-detail.component';
+import { UserAuthGuard } from './guards/user-auth.guard';
 
 export const routes: Routes = [
     {
@@ -16,7 +19,19 @@ export const routes: Routes = [
     },
     {
         path: 'checkout',
-        component: CheckoutComponent
+        component: CheckoutComponent,
+        canActivate: [UserAuthGuard],
+        data: { requireCart: true }
+    },
+    {
+        path: 'product/:id',
+        component: ProductDetailComponent
+    },
+    {
+        path: 'order/:id',
+        component: OrderDetailComponent,
+        canActivate: [UserAuthGuard],
+        data: { requireCart: false }
     },
     {
         path: 'labs',

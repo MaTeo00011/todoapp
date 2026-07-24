@@ -3,6 +3,10 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CartService, CartItem } from '../../services/cart.service';
+import { OrderService, OrderItemPayload } from '../../services/order.service';
+import { AuthService } from '../../services/auth.service';
+import { NotificationService } from '../../services/notification.service';
+import { isEmptyString, trimString } from '../../utils/validation.util';
 
 interface CustomerInfo {
   email: string;
@@ -38,19 +42,28 @@ export class CheckoutComponent implements OnInit {
     paymentMethod: 'nequi'
   };
 
-  constructor(private cartService: CartService, private router: Router) {}
+  orderError = '';
+
+  constructor(
+    private cartService: CartService,
+    private orderService: OrderService,
+    private authService: AuthService,
+    private router: Router,
+    private notificationService: NotificationService
+  ) {}
 
   ngOnInit() {
-    if (this.cartItems.length === 0) {
-        this.cartService.cartItems$.subscribe(items => {
-        this.cartItems = items;
-        this.currency = this.cartService.getCurrency();
-      });
+    this.cartService.cartItems$.subscribe(items => {
+      this.cartItems = items;
+      this.currency = this.cartService.getCurrency();
+      if (this.cartItems.length === 0) {
+        this.router.navigate(['/home']);
+      }
+    });
 
-      this.cartService.cartTotal$.subscribe(total => {
-        this.cartTotal = total;
-      });
-    }
+    this.cartService.cartTotal$.subscribe(total => {
+      this.cartTotal = total;
+    });
   }
 
   nextStep() {
@@ -77,16 +90,17 @@ export class CheckoutComponent implements OnInit {
 
   validateShipping(): boolean {
     const { email, fullName, phone, city, address } = this.customerInfo;
-    if (!email || !fullName || !phone || !city || !address) {
-      alert('Por favor, completa todos los campos de envío.');
+    // Evitar valores que solo contengan espacios
+    if (isEmptyString(email) || isEmptyString(fullName) || isEmptyString(phone) || isEmptyString(city) || isEmptyString(address)) {
+      this.notificationService.notify('Rellena los campos vacíos y corrige los errores del formulario.', 'error');
       return false;
     }
     if (!this.isValidEmail(email)) {
-      alert('Por favor, ingresa un email válido.');
+      this.notificationService.notify('Por favor, ingresa un correo electrónico válido en Email.', 'error');
       return false;
     }
     if (!this.isValidPhone(phone)) {
-      alert('Por favor, ingresa un número de teléfono válido.');
+      this.notificationService.notify('Por favor, ingresa un número de teléfono válido en Teléfono.', 'error');
       return false;
     }
     return true;
@@ -98,26 +112,60 @@ export class CheckoutComponent implements OnInit {
   }
 
   isValidPhone(phone: string): boolean {
-    // Acepta números con 7-15 dígitos, permitiendo guiones y espacios
-    const regex = /^[\d\s\-\+\(\)]{7,15}$/;
+    // Acepta números con prefijo internacional y hasta 25 caracteres, permitiendo guiones, espacios y paréntesis
+    const regex = /^[\+\d][\d\s\-\(\)]{6,24}$/;
     return regex.test(phone);
   }
 
   confirmPurchase() {
     if (this.cartItems.length === 0) {
-      alert('Tu carrito está vacío. Agrega productos antes de continuar.');
+      this.notificationService.notify('Tu carrito está vacío. Agrega productos antes de continuar.', 'info');
       this.router.navigate(['/home']);
       return;
     }
 
+    this.orderError = '';
     this.isProcessing = true;
-    // Simular procesamiento de pago
-    setTimeout(() => {
-      this.cartService.checkout();
+
+    const payload = {
+      userId: this.authService.getUser()?.userId,
+      customerInfo: {
+        ...this.customerInfo,
+        email: trimString(this.customerInfo.email),
+        fullName: trimString(this.customerInfo.fullName),
+        phone: trimString(this.customerInfo.phone),
+        city: trimString(this.customerInfo.city),
+        address: trimString(this.customerInfo.address)
+      },
+      items: this.cartItems.map(item => ({
+        productId: item.id,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        currency: item.currency ?? 'USD'
+      } as OrderItemPayload)),
+      total: this.cartTotal,
+      shippingCost: this.getShippingCost(this.cartTotal, this.currency),
+      currency: this.currency
+    };
+
+    this.orderService.createOrder(payload).subscribe(order => {
       this.isProcessing = false;
-      alert(`✅ Compra exitosa!\n\nPedido confirmado para ${this.customerInfo.fullName}\nSe enviará a: ${this.customerInfo.address}, ${this.customerInfo.city}`);
-      this.router.navigate(['/home']);
-    }, 1500);
+      if (!order) {
+        this.orderError = 'Error al procesar el pedido. Intenta nuevamente más tarde.';
+        this.notificationService.notify('Error al procesar el pedido. Intenta nuevamente más tarde.', 'error');
+        return;
+      }
+
+      const sale = this.cartService.checkout();
+      if (sale) {
+        this.notificationService.notify(`Compra exitosa — Pedido confirmado para ${this.customerInfo.fullName}.`, 'success');
+        this.router.navigate(['/home']);
+      } else {
+        this.orderError = 'La orden se registró en el backend, pero no se pudo actualizar el carrito local. Recarga la página.';
+        this.notificationService.notify('La orden se registró en el backend, pero no se pudo actualizar el carrito local. Recarga la página.', 'error');
+      }
+    });
   }
 
   goBack() {

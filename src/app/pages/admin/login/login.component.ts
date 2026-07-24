@@ -19,11 +19,13 @@ export class LoginComponent {
   constructor(private authService: AuthService, private router: Router) {}
 
   login() {
-    if (this.authService.loginAdmin(this.username, this.password)) {
-      this.errorMessage = '';
-      this.router.navigate(['/admin/dashboard']);
-    } else {
-      this.errorMessage = 'Credenciales inválidas. Intenta con admin/FitPro2026!';
-    }
+    this.authService.loginAdmin(this.username, this.password).subscribe(result => {
+      if (result.success) {
+        this.errorMessage = '';
+        this.router.navigate(['/admin/dashboard']);
+      } else {
+        this.errorMessage = result.error || 'Credenciales inválidas. Intenta con admin/FitPro2026!';
+      }
+    });
   }
 }

@@ -6,6 +6,7 @@ import { CartService } from '../../services/cart.service';
 import { NotificationService } from '../../services/notification.service';
 import { ProductService, Product } from '../../services/product.service';
 import { AuthService, AppUser } from '../../services/auth.service';
+import { OrderService, OrderResponse } from '../../services/order.service';
 
 // Interface para las slides del carrusel
 interface CarouselSlide {
@@ -47,6 +48,8 @@ export class HomeComponent implements OnInit, OnDestroy {
   get sales$() {
     return this.cartService.sales$;
   }
+
+  serverSales: OrderResponse[] = [];
 
   formatSalePrice(amount: number, currency: 'COP' | 'USD'): string {
     return currency === 'COP'
@@ -93,6 +96,7 @@ export class HomeComponent implements OnInit, OnDestroy {
     private notificationService: NotificationService,
     private productService: ProductService,
     private authService: AuthService,
+    private orderService: OrderService,
     private router: Router
   ) {}
 
@@ -123,6 +127,19 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.authService.currentUser$.subscribe(user => {
       this.currentUser = user;
       this.isAdmin = user?.role === 'admin';
+      if (user?.userId) {
+        this.loadUserOrders(user.userId);
+      } else {
+        this.serverSales = [];
+      }
+      this.handleUserStatusAlert(user);
+    });
+
+    // Recargar pedidos cuando se cree una nueva orden en cualquier parte de la app
+    this.orderService.ordersUpdated$.subscribe(() => {
+      if (this.currentUser?.userId) {
+        this.loadUserOrders(this.currentUser.userId);
+      }
     });
 
     // Iniciar auto-play del carrusel
@@ -132,6 +149,30 @@ export class HomeComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     // Limpiar interval al destruir el componente
     this.stopAutoPlay();
+  }
+
+  private loadUserOrders(userId: number) {
+    this.orderService.getOrdersByUser(userId).subscribe(orders => {
+      this.serverSales = orders;
+    });
+  }
+
+  private handleUserStatusAlert(user: AppUser | null) {
+    if (!user || !user.status || user.role !== 'user') {
+      return;
+    }
+
+    if (user.status === 'expiring') {
+      this.notificationService.notify(
+        'Tu membresía está por expirar. Renueva pronto para seguir disfrutando del servicio.',
+        'info'
+      );
+    } else if (user.status === 'expired') {
+      this.notificationService.notify(
+        'Tu membresía ha expirado. Renueva ahora para recuperar acceso completo.',
+        'error'
+      );
+    }
   }
 
   // ===== MÉTODOS DEL CARRUSEL =====
