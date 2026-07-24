@@ -3,6 +3,9 @@ import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { GymUserService, GymUser } from '../../services/gym-user.service';
+import { AuthService } from '../../services/auth.service';
+import { NotificationService } from '../../services/notification.service';
+import { isEmptyString, trimString } from '../../utils/validation.util';
 
 @Component({
   selector: 'app-register',
@@ -15,6 +18,7 @@ export class RegisterComponent {
 
   registerForm: FormGroup;
   showPersonalizedModal = false;
+  selectedPersonalizedType: string | null = null;
   personalizedTypes = [
     { value: 'fuerza', label: 'Fuerza' },
     { value: 'bajar_peso', label: 'Bajar de Peso' },
@@ -35,6 +39,8 @@ export class RegisterComponent {
   constructor(
     private fb: FormBuilder,
     private gymUserService: GymUserService,
+    private authService: AuthService,
+    private notificationService: NotificationService,
     private router: Router
   ) {
     this.registerForm = this.fb.group({
@@ -52,6 +58,9 @@ export class RegisterComponent {
     const trainingType = this.registerForm.get('trainingType')?.value;
     if (trainingType === 'personalized') {
       this.showPersonalizedModal = true;
+    } else {
+      this.showPersonalizedModal = false;
+      this.selectedPersonalizedType = null;
     }
   }
 
@@ -59,33 +68,60 @@ export class RegisterComponent {
     this.showPersonalizedModal = false;
     // Resetear a general si no confirma
     this.registerForm.patchValue({ trainingType: 'general' });
+    this.selectedPersonalizedType = null;
   }
 
   confirmPersonalized(type: string) {
-    // Aquí podrías agregar lógica para guardar el tipo personalizado
-    // Por ahora, solo cerramos el modal
+    this.selectedPersonalizedType = type;
     this.showPersonalizedModal = false;
   }
 
   onSubmit() {
-    if (this.registerForm.valid) {
-      const formValue = this.registerForm.value;
-      const userData: Omit<GymUser, 'id' | 'createdAt' | 'updatedAt' | 'paymentEnd' | 'status'> = {
-        ...formValue,
-        paymentStart: new Date(formValue.paymentStart)
-      };
+    const formValue = this.registerForm.value;
 
-      // Si es personalizado, agregar detalles (simulado)
-      if (formValue.trainingType === 'personalized') {
-        userData.personalizedDetails = { type: 'fuerza' };  // Por defecto, puedes expandir
-      }
-
-      this.gymUserService.addUser(userData);
-      alert('Usuario registrado exitosamente!');
-      this.goBack();
-    } else {
-      alert('Por favor, completa todos los campos correctamente.');
+    // Validación adicional para evitar entradas que contengan solo espacios
+    if (isEmptyString(formValue.firstName) || isEmptyString(formValue.lastName) || isEmptyString(formValue.phone)) {
+      this.notificationService.notify('Rellena los campos vacíos y corrige los errores del formulario.', 'error');
+      return;
     }
+
+    if (!this.registerForm.valid) {
+      this.notificationService.notify('Rellena los campos vacíos y corrige los errores del formulario.', 'error');
+      return;
+    }
+
+    if (formValue.trainingType === 'personalized' && !this.selectedPersonalizedType) {
+      this.notificationService.notify('Selecciona un tipo de entrenamiento personalizado para continuar.', 'error');
+      return;
+    }
+
+    const userData: Omit<GymUser, 'id' | 'createdAt' | 'updatedAt' | 'paymentEnd' | 'status'> = {
+      ...formValue,
+      firstName: trimString(formValue.firstName),
+      lastName: trimString(formValue.lastName),
+      phone: trimString(formValue.phone),
+      paymentStart: new Date(formValue.paymentStart),
+      personalizedDetails: formValue.trainingType === 'personalized' && this.selectedPersonalizedType
+        ? { type: this.selectedPersonalizedType as any }
+        : undefined
+    };
+
+    this.gymUserService.addUser(userData).subscribe(result => {
+      if (result) {
+        this.notificationService.notify('Usuario registrado exitosamente.', 'success');
+        const fullName = `${result.firstName} ${result.lastName}`;
+        this.authService.loginUser(fullName).subscribe(loginResult => {
+          if (loginResult.success) {
+            this.router.navigate(['/home']);
+          } else {
+            this.notificationService.notify('Registro exitoso, pero no se pudo iniciar sesión automáticamente.', 'info');
+            this.router.navigate(['/home']);
+          }
+        });
+      } else {
+        this.notificationService.notify('Error al registrar el usuario. Intenta nuevamente.', 'error');
+      }
+    });
   }
 
   goBack() {

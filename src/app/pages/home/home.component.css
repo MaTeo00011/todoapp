@@ -17,6 +17,32 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
+}
+
+.logo-and-nav {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.main-nav {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.main-nav a {
+  color: white;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  transition: background-color 0.2s ease;
+}
+
+.main-nav a:hover {
+  background: rgba(255, 255, 255, 0.12);
 }
 
 .logo {
@@ -46,7 +72,6 @@
   box-shadow: 0 8px 20px rgba(102, 126, 234, 0.5);
 }
 
-/* Badge con número de items */
 .cart-badge {
   position: absolute;
   top: -5px;
@@ -63,6 +88,78 @@
   justify-content: center;
   border: 2px solid #0a0a0a;
   animation: pulse 2s infinite;
+}
+
+.product-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.detail-button {
+  display: inline-block;
+  border: none;
+  background: transparent;
+  color: #111;
+  padding: 0.85rem 1.2rem;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.92);
+  transition: transform 0.2s ease, background-color 0.2s ease;
+}
+
+.detail-button:hover {
+  transform: translateY(-2px);
+  background: #f3f4f6;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.user-greeting {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  color: white;
+}
+
+.user-welcome {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.status-pill.active {
+  background: #2c9f4b;
+  color: white;
+}
+
+.status-pill.expiring {
+  background: #f2b52b;
+  color: #111;
+}
+
+.status-pill.expired {
+  background: #ff4d4f;
+  color: white;
 }
 
 @keyframes pulse {

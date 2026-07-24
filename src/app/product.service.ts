@@ -1,5 +1,4 @@
-
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, catchError, map, of, tap } from 'rxjs';
 
@@ -11,8 +10,8 @@ export interface Product {
   price: number;
   currency: 'COP' | 'USD';
   stock: number;
-  icon: string; // Emoji (mantener para compatibilidad)
-  image?: string; // ← NUEVO: URL de imagen en base64
+  icon: string;
+  image?: string;
   category?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -22,8 +21,6 @@ export interface Product {
   providedIn: 'root'
 })
 export class ProductService {
-  
-  // BehaviorSubject para lista de productos
   private apiUrl = 'http://localhost:3000/api/productos';
 
   private products = new BehaviorSubject<Product[]>([]);
@@ -33,12 +30,10 @@ export class ProductService {
     this.loadProductsFromServer();
   }
 
-  // 📚 OBTENER todos los productos
   getProducts(): Product[] {
     return this.products.value;
   }
 
-  // 🔍 OBTENER producto por ID
   getProductById(id: number): Product | undefined {
     return this.products.value.find(p => p.id === id);
   }
@@ -46,8 +41,6 @@ export class ProductService {
   private parseProduct(product: any): Product {
     return {
       ...product,
-      price: Number(product.price),
-      stock: Number(product.stock),
       createdAt: new Date(product.createdAt),
       updatedAt: new Date(product.updatedAt)
     };
@@ -64,7 +57,6 @@ export class ProductService {
     ).subscribe();
   }
 
-  // ➕ AGREGAR nuevo producto
   addProduct(productData: Omit<Product, 'id' | 'createdAt' | 'updatedAt'>) {
     return this.http.post<Product>(this.apiUrl, productData).pipe(
       map(product => this.parseProduct(product)),
@@ -76,7 +68,6 @@ export class ProductService {
     );
   }
 
-  // ✏️ ACTUALIZAR producto existente
   updateProduct(id: number, productData: Partial<Product>) {
     return this.http.put<Product>(`${this.apiUrl}/${id}`, productData).pipe(
       map(product => this.parseProduct(product)),
@@ -91,7 +82,6 @@ export class ProductService {
     );
   }
 
-  // 🗑️ ELIMINAR producto
   deleteProduct(id: number) {
     return this.http.delete<{ message: string }>(`${this.apiUrl}/${id}`).pipe(
       map(() => true),
@@ -104,11 +94,5 @@ export class ProductService {
         return of(false);
       })
     );
-  }
-
-  // 🔄 RESETEAR productos a los valores por defecto
-  resetToDefaults(): void {
-    this.products.next([]);
-    this.loadProductsFromServer();
   }
 }

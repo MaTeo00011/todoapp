@@ -72,6 +72,9 @@
           <option value="general">Entrenador General</option>
           <option value="personalized">Entrenamiento Personalizado</option>
         </select>
+        <div *ngIf="registerForm.get('trainingType')?.value === 'personalized' && selectedPersonalizedType" class="personalized-summary">
+          Has seleccionado: <strong>{{ selectedPersonalizedType | titlecase }}</strong>
+        </div>
       </div>
 
       <!-- Tipo de Pago -->

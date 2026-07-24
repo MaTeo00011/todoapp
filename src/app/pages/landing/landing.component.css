@@ -54,6 +54,45 @@
   background: linear-gradient(135deg, rgba(0, 0, 0, 0.7), rgba(0, 102, 255, 0.3));
 }
 
+/* Cabecera de navegación */
+.landing-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  gap: 1rem;
+}
+
+.landing-brand {
+  color: white;
+  font-weight: 800;
+  font-size: 1.2rem;
+}
+
+.landing-nav {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.landing-nav a {
+  color: white;
+  text-decoration: none;
+  padding: 0.6rem 1rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  transition: background 0.2s ease;
+}
+
+.landing-nav a:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
 /* Contenido principal */
 .landing-content {
   position: relative;
@@ -246,6 +285,15 @@
   display: flex;
   gap: 1rem;
   justify-content: flex-end;
+}
+
+/* Mensajes de error/ayuda en el modal de login */
+.login-error {
+  color: #FFFFFF; /* texto blanco para contraste en tema oscuro */
+  background: transparent;
+  font-size: 0.9rem;
+  margin-top: 0.25rem;
+  opacity: 0.95;
 }
 
 .cancel-btn,

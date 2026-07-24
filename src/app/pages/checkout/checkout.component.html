@@ -209,6 +209,10 @@
     </div>
   </section>
 
+  <section *ngIf="orderError" class="checkout-error">
+    <p>{{ orderError }}</p>
+  </section>
+
   <!-- Botones de acción -->
   <section class="checkout-actions">
     <button class="btn-secondary" (click)="goBack()">

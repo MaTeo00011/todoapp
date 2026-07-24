@@ -3,6 +3,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { GymUserService, GymUser } from '../../../services/gym-user.service';
+import { NotificationService } from '../../../services/notification.service';
+import { isEmptyString, trimString } from '../../../utils/validation.util';
 
 @Component({
   selector: 'app-users-admin',
@@ -38,7 +40,7 @@ export class UsersAdminComponent implements OnInit, OnDestroy {
     paymentStart: new Date()
   };
 
-  constructor(private gymUserService: GymUserService, private router: Router) {}
+  constructor(private gymUserService: GymUserService, private router: Router, private notificationService: NotificationService) {}
 
   ngOnInit() {
     // Cargar usuarios
@@ -119,18 +121,53 @@ export class UsersAdminComponent implements OnInit, OnDestroy {
   // Guardar cambios del usuario editado
   saveUserChanges() {
     if (this.editingUser) {
-      this.gymUserService.updateUser(this.editingUser.id, this.editingUser);
-      this.closeEditModal();
+      // Validar entradas para evitar sólo espacios
+      if (isEmptyString(this.editingUser.firstName) || isEmptyString(this.editingUser.lastName) || isEmptyString(String(this.editingUser.phone))) {
+        this.notificationService.notify('Rellena los campos obligatorios antes de guardar.', 'error');
+        return;
+      }
+
+      // Trim antes de enviar
+      this.editingUser.firstName = trimString(this.editingUser.firstName);
+      this.editingUser.lastName = trimString(this.editingUser.lastName);
+      if (this.editingUser.phone) this.editingUser.phone = trimString(String(this.editingUser.phone));
+
+      this.gymUserService.updateUser(this.editingUser.id, this.editingUser).subscribe(result => {
+        if (result) {
+          this.notificationService.notify('Usuario actualizado correctamente.', 'success');
+        } else {
+          this.notificationService.notify('Error al actualizar el usuario.', 'error');
+        }
+        this.closeEditModal();
+      });
     }
   }
 
   // Guardar nuevo usuario
   saveNewUser() {
-    if (this.newUser.firstName && this.newUser.lastName && this.newUser.age && this.newUser.phone && this.newUser.trainingType && this.newUser.paymentType && this.newUser.paymentStart) {
-      this.gymUserService.addUser(this.newUser as Omit<GymUser, 'id' | 'createdAt' | 'updatedAt' | 'paymentEnd' | 'status'>);
-      this.closeAddModal();
+    // Validar campos obligatorios evitando sólo espacios
+    if (isEmptyString(this.newUser.firstName as any) || isEmptyString(this.newUser.lastName as any) || !this.newUser.age || isEmptyString(String(this.newUser.phone))) {
+      this.notificationService.notify('Rellena los campos obligatorios del formulario.', 'error');
+      return;
+    }
+
+    // Preparar usuario y trim
+    const payload = { ...this.newUser } as any;
+    payload.firstName = trimString(payload.firstName);
+    payload.lastName = trimString(payload.lastName);
+    if (payload.phone) payload.phone = trimString(String(payload.phone));
+
+    if (payload.firstName && payload.lastName && payload.age && payload.phone && payload.trainingType && payload.paymentType && payload.paymentStart) {
+      this.gymUserService.addUser(payload as Omit<GymUser, 'id' | 'createdAt' | 'updatedAt' | 'paymentEnd' | 'status'>).subscribe(result => {
+        if (result) {
+          this.notificationService.notify('Usuario agregado correctamente.', 'success');
+          this.closeAddModal();
+        } else {
+          this.notificationService.notify('Error al agregar el usuario.', 'error');
+        }
+      });
     } else {
-      alert('Por favor completa todos los campos obligatorios');
+      this.notificationService.notify('Rellena los campos obligatorios del formulario.', 'error');
     }
   }
 
@@ -180,7 +217,13 @@ export class UsersAdminComponent implements OnInit, OnDestroy {
   // Eliminar usuario
   deleteUser(id: number) {
     if (confirm('¿Estás seguro de eliminar este usuario?')) {
-      this.gymUserService.deleteUser(id);
+      this.gymUserService.deleteUser(id).subscribe(success => {
+        if (success) {
+          this.notificationService.notify('Usuario eliminado correctamente.', 'success');
+        } else {
+          this.notificationService.notify('Error al eliminar el usuario.', 'error');
+        }
+      });
     }
   }
 

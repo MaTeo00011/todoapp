@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ProductService, Product } from '../../../services/product.service';
+import { NotificationService } from '../../../services/notification.service';
 
 @Component({
   selector: 'app-productos',
@@ -39,7 +40,7 @@ export class ProductosComponent implements OnInit {
   // Lista de emojis disponibles
   availableIcons = ['🥤', '⚡', '💊', '🔥', '🥛', '💎', '💪', '🏋️', '🎯', '⭐', '🌟', '✨'];
 
-  constructor(private productService: ProductService) {}
+  constructor(private productService: ProductService, private notificationService: NotificationService) {}
 
   ngOnInit() {
     this.loadProducts();
@@ -115,40 +116,59 @@ export class ProductosComponent implements OnInit {
 
   // NUEVO: Manejar selección de imagen
   onImageSelected(event: any) {
-    const file = event.target.files[0];
-    
-    if (!file) {
-      return;
-    }
+  const file = event.target.files[0];
+  
+  if (!file) return;
 
-    // Validar tipo de archivo
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-      alert('⚠️ Por favor selecciona una imagen válida (JPG, PNG, GIF, WEBP)');
-      return;
-    }
-
-    // Validar tamaño (máximo 2MB)
-    const maxSize = 2 * 1024 * 1024; // 2MB en bytes
-    if (file.size > maxSize) {
-      alert('⚠️ La imagen es muy grande. El tamaño máximo es 2MB');
-      return;
-    }
-
-    // Convertir a base64 para preview y almacenamiento
-    const reader = new FileReader();
-    
-    reader.onload = (e: any) => {
-      this.imagePreview = e.target.result;
-      this.productForm.image = e.target.result;
-    };
-    
-    reader.onerror = () => {
-      alert('❌ Error al cargar la imagen');
-    };
-    
-    reader.readAsDataURL(file);
+  const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+  if (!validTypes.includes(file.type)) {
+    this.notificationService.notify('Por favor selecciona una imagen válida (JPG, PNG, GIF, WEBP).', 'error');
+    return;
   }
+
+  const reader = new FileReader();
+  reader.onload = (e: any) => {
+    const img = new Image();
+    img.onload = () => {
+      // Crear canvas para redimensionar
+      const canvas = document.createElement('canvas');
+      const MAX_WIDTH = 400;  // ancho máximo de la tarjeta
+      const MAX_HEIGHT = 400; // alto máximo
+
+      let width = img.width;
+      let height = img.height;
+
+      // Escalar manteniendo proporción
+      if (width > height) {
+        if (width > MAX_WIDTH) {
+          height = Math.round(height * MAX_WIDTH / width);
+          width = MAX_WIDTH;
+        }
+      } else {
+        if (height > MAX_HEIGHT) {
+          width = Math.round(width * MAX_HEIGHT / height);
+          height = MAX_HEIGHT;
+        }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext('2d')!;
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Comprimir a JPEG con calidad 0.7 (70%)
+      const compressedBase64 = canvas.toDataURL('image/jpeg', 0.7);
+
+      this.imagePreview = compressedBase64;
+      this.productForm.image = compressedBase64;
+    };
+    img.src = e.target.result;
+  };
+
+  reader.onerror = () => this.notificationService.notify('Error al cargar la imagen.', 'error');
+  reader.readAsDataURL(file);
+}
 
   // NUEVO: Eliminar imagen seleccionada
   removeImage() {
@@ -167,35 +187,41 @@ export class ProductosComponent implements OnInit {
   saveProduct() {
     // Validaciones básicas
     if (!this.productForm.name || !this.productForm.description) {
-      alert('⚠️ Por favor completa todos los campos obligatorios');
+      this.notificationService.notify('Rellena los campos obligatorios del producto.', 'error');
       return;
     }
 
     if (this.productForm.price <= 0) {
-      alert('⚠️ El precio debe ser mayor a 0');
+      this.notificationService.notify('El precio debe ser mayor a 0.', 'error');
       return;
     }
 
     if (this.productForm.stock < 0) {
-      alert('⚠️ El stock no puede ser negativo');
+      this.notificationService.notify('El stock no puede ser negativo.', 'error');
       return;
     }
 
     if (this.isEditMode) {
       // Actualizar producto existente
-      const updated = this.productService.updateProduct(this.productForm.id, this.productForm);
-      if (updated) {
-        alert('✅ Producto actualizado exitosamente');
-        this.closeModal();
-      } else {
-        alert('❌ Error al actualizar el producto');
-      }
+      this.productService.updateProduct(this.productForm.id, this.productForm).subscribe(result => {
+        if (result) {
+          this.notificationService.notify('Producto actualizado exitosamente.', 'success');
+          this.closeModal();
+        } else {
+          this.notificationService.notify('Error al actualizar el producto.', 'error');
+        }
+      });
     } else {
       // Agregar nuevo producto
       const { id, ...productData } = this.productForm;
-      this.productService.addProduct(productData);
-      alert('✅ Producto agregado exitosamente');
-      this.closeModal();
+      this.productService.addProduct(productData).subscribe(result => {
+        if (result) {
+          this.notificationService.notify('Producto agregado exitosamente.', 'success');
+          this.closeModal();
+        } else {
+          this.notificationService.notify('Error al agregar el producto.', 'error');
+        }
+      });
     }
   }
 
@@ -206,12 +232,13 @@ export class ProductosComponent implements OnInit {
     );
 
     if (confirmDelete) {
-      const deleted = this.productService.deleteProduct(product.id);
-      if (deleted) {
-        alert('✅ Producto eliminado');
-      } else {
-        alert('❌ Error al eliminar el producto');
-      }
+      this.productService.deleteProduct(product.id).subscribe(success => {
+        if (success) {
+          this.notificationService.notify('Producto eliminado.', 'success');
+        } else {
+          this.notificationService.notify('Error al eliminar el producto.', 'error');
+        }
+      });
     }
   }
 
