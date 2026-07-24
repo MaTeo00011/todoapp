@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { catchError, map, Observable, of, Subject, tap } from 'rxjs';
+import { API_BASE_URL } from '../app.constants';
 
 export interface OrderItemPayload {
   productId: number;
@@ -43,7 +44,7 @@ export interface OrderResponse {
   providedIn: 'root'
 })
 export class OrderService {
-  private apiUrl = 'http://localhost:3000/api/ventas';
+  private apiUrl = `${API_BASE_URL}/api/ventas`;
   // Emite cuando hay una orden nueva creada (para que componentes recarguen)
   private ordersUpdated = new Subject<void>();
   ordersUpdated$ = this.ordersUpdated.asObservable();

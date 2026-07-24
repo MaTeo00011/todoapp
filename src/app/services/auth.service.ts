@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, catchError, map, Observable, of, switchMap } from 'rxjs';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { API_BASE_URL } from '../app.constants';
 
 export type UserRole = 'admin' | 'user';
 
@@ -32,7 +33,7 @@ interface AuthMeResponse {
   providedIn: 'root'
 })
 export class AuthService {
-  private authUrl = 'http://localhost:3000/api/auth';
+  private authUrl = `${API_BASE_URL}/api/auth`;
   private currentUser = new BehaviorSubject<AppUser | null>(null);
   currentUser$ = this.currentUser.asObservable();
   private tokenKey = 'app-auth-token';

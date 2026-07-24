@@ -17,11 +17,13 @@ export interface Product {
   updatedAt: Date;
 }
 
+import { API_BASE_URL } from './app.constants';
+
 @Injectable({
   providedIn: 'root'
 })
 export class ProductService {
-  private apiUrl = 'http://localhost:3000/api/productos';
+  private apiUrl = `${API_BASE_URL}/api/productos`;
 
   private products = new BehaviorSubject<Product[]>([]);
   products$ = this.products.asObservable();
